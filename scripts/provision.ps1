@@ -134,14 +134,16 @@ Next steps:
    Job doesn't exist yet. Skip straight to step 3 below and use --no-source or
    the plain deploy, then cloudbuild.yaml will work on subsequent pushes.)
 
-3. First deploy of the Job (DRY_RUN=true for validation):
+3. First deploy of the Job (DRY_RUN=true for validation). Note: comma-separated
+   values must be QUOTED so PowerShell 5.1 doesn't parse the commas as array
+   delimiters and mangle --set-env-vars / --set-secrets.
 
    gcloud run jobs deploy $JobName ``
      --image=$Region-docker.pkg.dev/$Project/$ArRepo/job:latest ``
      --region=$Region ``
      --service-account=$JobSaEmail ``
-     --set-env-vars=GCP_PROJECT=$Project,BQ_DATASET=$BqDataset,GITHUB_REPO=bchristensen-cz/social_capis,DRY_RUN=true,TZ=America/Denver ``
-     --set-secrets=TIKTOK_ACCESS_TOKEN=tiktok-access-token:latest,TIKTOK_PIXEL_CODE=tiktok-pixel-code:latest,META_ACCESS_TOKEN=meta-access-token:latest,META_DATASET_ID=meta-dataset-id:latest,SNAP_ACCESS_TOKEN=snap-access-token:latest,SNAP_PIXEL_ID=snap-pixel-id:latest,GITHUB_PAT=github-pat:latest ``
+     --set-env-vars="GCP_PROJECT=$Project,BQ_DATASET=$BqDataset,GITHUB_REPO=bchristensen-cz/social_capis,DRY_RUN=true,TZ=America/Denver" ``
+     --set-secrets="TIKTOK_ACCESS_TOKEN=tiktok-access-token:latest,TIKTOK_PIXEL_CODE=tiktok-pixel-code:latest,META_ACCESS_TOKEN=meta-access-token:latest,META_DATASET_ID=meta-dataset-id:latest,SNAP_ACCESS_TOKEN=snap-access-token:latest,SNAP_PIXEL_ID=snap-pixel-id:latest,GITHUB_PAT=github-pat:latest" ``
      --max-retries=1 --task-timeout=1800s --cpu=1 --memory=1Gi
 
 4. Execute a dry run:
@@ -150,7 +152,7 @@ Next steps:
 
 5. Flip to live + create Scheduler cron (04:00 MT):
 
-   gcloud run jobs update $JobName --region=$Region --update-env-vars=DRY_RUN=false
+   gcloud run jobs update $JobName --region=$Region --update-env-vars="DRY_RUN=false"
 
    gcloud scheduler jobs create http $JobName-cron ``
      --location=$Region ``
