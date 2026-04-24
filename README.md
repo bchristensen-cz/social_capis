@@ -34,9 +34,8 @@ python -m venv .venv
 ```bash
 gcloud auth application-default login
 
-export GCP_PROJECT=your-project
-export BQ_DATASET=your_dataset
-export BQ_TABLE=your_table
+export GCP_PROJECT=marketing-data-442316
+export BQ_DATASET=sales_ops           # default
 export GITHUB_REPO=bchristensen-cz/social_capis
 export GITHUB_PAT=...
 export TIKTOK_ACCESS_TOKEN=...
@@ -55,17 +54,21 @@ Optional:
 - `ENABLE_TIKTOK=false` / `ENABLE_META=false` / `ENABLE_SNAP=false` — disable a single platform.
 - `ERROR_RATE_THRESHOLD=0.05` — non-zero exit threshold (default 5%).
 
-## Expected BigQuery schema
+## Data source
 
-| Column | Type | Notes |
-|---|---|---|
-| `event_time` | TIMESTAMP | Partition column |
-| `event_name` | STRING | e.g. `Purchase` |
-| `email_hash` | STRING | SHA-256 hex (raw values also accepted — re-hashed locally) |
-| `phone_hash` | STRING | SHA-256 hex of E.164 digits-only |
-| `value` | NUMERIC | |
-| `currency` | STRING | ISO 4217 |
-| `order_id` | STRING | Unique; used for `event_id = sha256(order_id + "|" + platform)` |
+The job reads from two tables in `sales_ops`, joined and filtered inside [src/bigquery_source.py](src/bigquery_source.py):
+
+- `OrderCustomer` — POS transactions with `brink_order_id`, `netsales`, `mapped_email`, `order_datetime`, `BusinessDate`, `pulse_order_id`, `iscatering`, `storeid`
+- `cust_info` — customer table with `mapped_cust_id` → `Phone`
+
+Row-level filters (applied in SQL):
+- `BusinessDate = yesterday` (America/Denver)
+- `mapped_email IS NOT NULL` (requires loyalty/in-store scan match)
+- `pulse_order_id IS NULL` (digital orders already CAPI-posted at checkout)
+- `iscatering = 0`
+- `storeid <> 1111` (test store)
+
+All rows are sent as `Purchase` events. Phone numbers are validated with the `phonenumbers` library (Google libphonenumber) — invalid numbers are dropped from the payload while the row is still sent with just the email. Both email and phone are SHA-256 hashed in the job, never in SQL.
 
 ## Exit codes
 

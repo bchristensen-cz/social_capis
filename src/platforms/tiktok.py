@@ -35,11 +35,16 @@ class TikTokClient:
         self._session = session or requests.Session()
 
     def _build_event(self, c: Conversion) -> dict:
+        user: dict[str, str] = {}
+        if c.email_hash:
+            user["email"] = c.email_hash
+        if c.phone_hash:
+            user["phone"] = c.phone_hash
         return {
             "event": c.event_name,
             "event_time": c.epoch_seconds(),
             "event_id": event_id(c.order_id, NAME),
-            "user": {"email": c.email_hash, "phone": c.phone_hash},
+            "user": user,
             "properties": {
                 "value": c.value,
                 "currency": c.currency,

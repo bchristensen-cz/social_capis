@@ -37,7 +37,6 @@ def _float(name: str, default: float) -> float:
 class Config:
     gcp_project: str
     bq_dataset: str
-    bq_table: str
     github_repo: str
     github_branch: str
     github_pat: str
@@ -59,8 +58,7 @@ class Config:
     def load(cls) -> Config:
         return cls(
             gcp_project=_required("GCP_PROJECT"),
-            bq_dataset=_required("BQ_DATASET"),
-            bq_table=_required("BQ_TABLE"),
+            bq_dataset=_optional("BQ_DATASET", "sales_ops"),
             github_repo=_optional("GITHUB_REPO", "bchristensen-cz/social_capis"),
             github_branch=_optional("GITHUB_BRANCH", "main"),
             github_pat=_required("GITHUB_PAT"),

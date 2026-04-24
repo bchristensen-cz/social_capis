@@ -60,6 +60,29 @@ def test_tiktok_batches_across_1000_limit(sample_conversion):
 
 
 @responses.activate
+def test_tiktok_omits_empty_user_fields(sample_conversion):
+    from dataclasses import replace
+
+    captured = {}
+
+    def handler(request):
+        import json
+
+        captured["body"] = json.loads(request.body)
+        return (200, {}, '{"code": 0}')
+
+    responses.add_callback(responses.POST, ENDPOINT, callback=handler, content_type="application/json")
+
+    row = replace(sample_conversion, phone_hash="")
+    client = TikTokClient("T", "P")
+    client.send([row])
+
+    user = captured["body"]["data"][0]["user"]
+    assert "email" in user
+    assert "phone" not in user
+
+
+@responses.activate
 def test_tiktok_4xx_is_not_retried(sample_conversion):
     responses.add(
         responses.POST,

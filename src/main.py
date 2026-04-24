@@ -117,9 +117,7 @@ def run(cfg: Config, target: date) -> int:
         },
     )
 
-    conversions = bigquery_source.fetch(
-        cfg.gcp_project, cfg.bq_dataset, cfg.bq_table, target
-    )
+    conversions = bigquery_source.fetch(cfg.gcp_project, cfg.bq_dataset, target)
 
     if not conversions:
         log.warning("no_conversions", extra={"target_date": target.isoformat()})
