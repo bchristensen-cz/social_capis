@@ -18,7 +18,8 @@ def test_snap_success_payload_shape(sample_conversion):
     def handler(request):
         captured["body"] = json.loads(request.body)
         captured["headers"] = dict(request.headers)
-        return (200, {}, '{"status": "ok"}')
+        captured["url"] = request.url
+        return (200, {}, '{"status": "VALID"}')
 
     responses.add_callback(
         responses.POST, _endpoint("PIX"), callback=handler, content_type="application/json"
@@ -34,7 +35,9 @@ def test_snap_success_payload_shape(sample_conversion):
     assert event["event_name"] == "PURCHASE"
     assert event["action_source"] == "OFFLINE"
     assert event["user_data"]["em"] == [sample_conversion.email_hash]
-    assert captured["headers"].get("Authorization") == "Bearer TK"
+    # Token is passed as query param, not Authorization header.
+    assert "Authorization" not in captured["headers"]
+    assert "access_token=TK" in captured["url"]
 
 
 @responses.activate

@@ -59,12 +59,12 @@ class SnapchatClient:
 
     @retryable_request
     def _post(self, body: dict) -> requests.Response:
+        # Snap CAPI v3 Business Center tokens (aud=canvas-canvasapi) authenticate
+        # via ?access_token= query parameter, not Authorization: Bearer.
         r = self._session.post(
             self._endpoint,
-            headers={
-                "Authorization": f"Bearer {self._token}",
-                "Content-Type": "application/json",
-            },
+            params={"access_token": self._token},
+            headers={"Content-Type": "application/json"},
             json=body,
             timeout=self._timeout,
         )
