@@ -3,8 +3,9 @@
 #
 # Pre-req: `gcloud auth login` and be Owner/Editor of the project.
 # This script is idempotent: safe to re-run.
-
-$ErrorActionPreference = 'Stop'
+#
+# NOTE: uses gcloud.cmd (not gcloud or gcloud.ps1) to avoid Windows PowerShell 5.1
+# wrapping gcloud's stderr as NativeCommandError when a describe returns NOT_FOUND.
 
 # ---------- Config ----------
 $Project   = 'marketing-data-442316'
@@ -30,15 +31,16 @@ $JobSaEmail   = "$JobSa@$Project.iam.gserviceaccount.com"
 $SchedSaEmail = "$SchedSa@$Project.iam.gserviceaccount.com"
 
 function Invoke-Gcloud {
-    # Run gcloud; throw if it fails. Avoids PowerShell's flaky handling of native stderr.
-    $args = $args
-    & gcloud @args
-    if ($LASTEXITCODE -ne 0) { throw "gcloud failed (exit $LASTEXITCODE): $($args -join ' ')" }
+    # Run gcloud.cmd with the function's args; throw if exit code is non-zero.
+    & gcloud.cmd @args
+    if ($LASTEXITCODE -ne 0) {
+        throw "gcloud failed (exit $LASTEXITCODE): $($args -join ' ')"
+    }
 }
 
 function Test-GcloudResource {
-    # Returns $true when the describe-style gcloud command succeeds, $false on non-zero exit.
-    & gcloud @args *> $null
+    # Run a probe; suppress stderr; return $true if exit code is 0.
+    & gcloud.cmd @args 2>$null | Out-Null
     return ($LASTEXITCODE -eq 0)
 }
 
@@ -124,7 +126,15 @@ Next steps:
      `$plain | gcloud secrets versions add `$n --data-file=-
    }
 
-2. First deploy of the Job (DRY_RUN=true for validation):
+2. First Cloud Build (builds image + pushes to Artifact Registry):
+
+   gcloud builds submit --config=cloudbuild.yaml
+
+   (On first run the deploy step inside cloudbuild.yaml will fail because the
+   Job doesn't exist yet. Skip straight to step 3 below and use --no-source or
+   the plain deploy, then cloudbuild.yaml will work on subsequent pushes.)
+
+3. First deploy of the Job (DRY_RUN=true for validation):
 
    gcloud run jobs deploy $JobName ``
      --image=$Region-docker.pkg.dev/$Project/$ArRepo/job:latest ``
@@ -133,12 +143,6 @@ Next steps:
      --set-env-vars=GCP_PROJECT=$Project,BQ_DATASET=$BqDataset,GITHUB_REPO=bchristensen-cz/social_capis,DRY_RUN=true,TZ=America/Denver ``
      --set-secrets=TIKTOK_ACCESS_TOKEN=tiktok-access-token:latest,TIKTOK_PIXEL_CODE=tiktok-pixel-code:latest,META_ACCESS_TOKEN=meta-access-token:latest,META_DATASET_ID=meta-dataset-id:latest,SNAP_ACCESS_TOKEN=snap-access-token:latest,SNAP_PIXEL_ID=snap-pixel-id:latest,GITHUB_PAT=github-pat:latest ``
      --max-retries=1 --task-timeout=1800s --cpu=1 --memory=1Gi
-
-   (The image doesn't exist yet — run Cloud Build first, then this deploy command.)
-
-3. First Cloud Build (manual build of the current commit):
-
-   gcloud builds submit --config=cloudbuild.yaml
 
 4. Execute a dry run:
 
