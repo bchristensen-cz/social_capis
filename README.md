@@ -58,15 +58,15 @@ Optional:
 
 The job reads from two tables in `sales_ops`, joined and filtered inside [src/bigquery_source.py](src/bigquery_source.py):
 
-- `OrderCustomer` — POS transactions with `brink_order_id`, `netsales`, `mapped_email`, `order_datetime`, `BusinessDate`, `pulse_order_id`, `iscatering`, `storeid`
+- `order_customer` — POS transactions with `brink_order_id`, `net_sales`, `mapped_email`, `order_timestamp_utc`, `business_date`, `pulse_order_id`, `is_catering`, `store_id`
 - `cust_info` — customer table with `mapped_cust_id` → `Phone`
 
 Row-level filters (applied in SQL):
-- `BusinessDate = yesterday` (America/Denver)
+- `business_date = yesterday` (America/Denver)
 - `mapped_email IS NOT NULL` (requires loyalty/in-store scan match)
 - `pulse_order_id IS NULL` (digital orders already CAPI-posted at checkout)
-- `iscatering = 0`
-- `storeid <> 1111` (test store)
+- `is_catering = FALSE`
+- `store_id <> 1111` (test store)
 
 All rows are sent as `Purchase` events. Phone numbers are validated with the `phonenumbers` library (Google libphonenumber) — invalid numbers are dropped from the payload while the row is still sent with just the email. Both email and phone are SHA-256 hashed in the job, never in SQL.
 

@@ -17,24 +17,25 @@ EVENT_NAME = "Purchase"
 
 # Cafe Zupas CAPI source: matched customers from in-store POS, non-digital
 # (digital orders already post CAPI events directly from checkout), no catering,
-# excluding the test store. `BusinessDate` is the POS-day partition column.
+# excluding the test store. `business_date` is the POS-day partition column. `order_timestamp_utc`
+# is the UTC event time (`order_datetime_local` is America/Denver).
 _SQL = """
 WITH capi_data AS (
   SELECT
     oc.brink_order_id AS transaction_id,
-    oc.netsales AS transaction_value,
+    oc.net_sales AS transaction_value,
     'USD' AS currency,
     oc.mapped_email AS email,
-    oc.order_datetime AS event_time,
-    CONCAT('1', i.Phone) AS phone_raw
-  FROM `{project}.{dataset}.OrderCustomer` oc
+    oc.order_timestamp_utc AS event_time,
+    CONCAT('1', CAST(i.Phone AS STRING)) AS phone_raw
+  FROM `{project}.{dataset}.order_customer` oc
   LEFT JOIN `{project}.{dataset}.cust_info` i
     ON i.mapped_cust_id = oc.mapped_cust_id
-  WHERE oc.BusinessDate = @target_date
+  WHERE oc.business_date = @target_date
     AND oc.mapped_email IS NOT NULL
     AND oc.pulse_order_id IS NULL
-    AND oc.iscatering = 0
-    AND oc.storeid <> 1111
+    AND oc.is_catering = FALSE
+    AND oc.store_id <> 1111
 )
 SELECT
   event_time,
