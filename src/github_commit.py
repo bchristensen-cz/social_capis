@@ -80,3 +80,15 @@ def commit_file(
         extra={"repo": repo, "path": path, "bytes": len(content), "overwrite": bool(existing_sha)},
     )
     return _put_contents(s, repo, path, body, token)
+
+
+def file_exists(
+    repo: str,
+    path: str,
+    token: str,
+    branch: str = "main",
+    session: requests.Session | None = None,
+) -> bool:
+    """True if `path` already exists on `branch` (used to skip already-sent dates)."""
+    s = session or requests.Session()
+    return _get_existing_sha(s, repo, path, branch, token) is not None

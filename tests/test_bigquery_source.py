@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from src.bigquery_source import EVENT_NAME, _row_to_conversion, rows_to_jsonl_bytes
+from src.bigquery_source import (
+    EVENT_NAME,
+    _row_to_conversion,
+    _yesterday_denver,
+    catchup_dates,
+    rows_to_jsonl_bytes,
+)
 from src.hashing import sha256_hex
 from src.models import Conversion
 
@@ -72,3 +78,14 @@ def test_rows_to_jsonl_bytes_round_trip(sample_conversion):
     assert parsed["order_id"] == sample_conversion.order_id
     assert parsed["email_hash"] == sample_conversion.email_hash
     assert parsed["event_name"] == sample_conversion.event_name
+
+
+def test_catchup_dates_window_is_consecutive_and_ends_yesterday():
+    dates = catchup_dates(7)
+    assert len(dates) == 7
+    assert dates[-1] == _yesterday_denver()
+    assert all((later - earlier).days == 1 for earlier, later in zip(dates, dates[1:], strict=False))
+
+
+def test_catchup_dates_minimum_one_day():
+    assert catchup_dates(0) == [_yesterday_denver()]

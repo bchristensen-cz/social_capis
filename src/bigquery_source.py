@@ -61,6 +61,18 @@ def resolve_target_date(override: str = "") -> date:
     return _yesterday_denver()
 
 
+def catchup_dates(days: int) -> list[date]:
+    """Trailing window of business dates to check, oldest first, ending yesterday (Denver).
+
+    Upstream `mapped_email` mapping can land 2+ days after the business date,
+    so a date that had zero eligible rows the morning after must be re-checked
+    on later runs instead of being skipped forever.
+    """
+    n = max(1, days)
+    end = _yesterday_denver()
+    return [date.fromordinal(end.toordinal() - i) for i in range(n - 1, -1, -1)]
+
+
 def fetch(
     project: str,
     dataset: str,

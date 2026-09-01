@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from datetime import date
 
+from src.bigquery_source import catchup_dates
+from src.config import Config
 from src.main import (
     any_platform_fully_down,
     compute_error_rate,
     failures_to_jsonl,
     group_failures,
+    resolve_dates,
 )
 from src.models import SendResult
 
@@ -58,3 +62,39 @@ def test_group_failures_and_jsonl(sample_conversion):
     lines = [line for line in jsonl.splitlines() if line]
     assert len(lines) == 2
     assert "meta boom" in lines[0] or "meta boom" in lines[1]
+
+
+def _cfg(**overrides) -> Config:
+    base = dict(
+        gcp_project="p",
+        bq_dataset="d",
+        github_repo="o/r",
+        github_branch="main",
+        github_pat="T",
+        tiktok_access_token="t",
+        tiktok_pixel_code="px",
+        meta_access_token="m",
+        meta_dataset_id="ds",
+        snap_access_token="s",
+        snap_pixel_id="sp",
+        dry_run=True,
+        test_event_code="",
+        enable_tiktok=True,
+        enable_meta=True,
+        enable_snap=True,
+        error_rate_threshold=0.05,
+        catchup_days=7,
+        target_date_override="",
+    )
+    base.update(overrides)
+    return Config(**base)
+
+
+def test_resolve_dates_override_is_single_forced_date():
+    cfg = _cfg(target_date_override="2026-08-21")
+    assert resolve_dates(cfg) == [date(2026, 8, 21)]
+
+
+def test_resolve_dates_sweep_uses_catchup_window():
+    cfg = _cfg(catchup_days=5)
+    assert resolve_dates(cfg) == catchup_dates(5)

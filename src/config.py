@@ -33,6 +33,13 @@ def _float(name: str, default: float) -> float:
     return float(raw)
 
 
+def _int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None or raw == "":
+        return default
+    return int(raw)
+
+
 @dataclass(frozen=True, slots=True)
 class Config:
     gcp_project: str
@@ -52,6 +59,7 @@ class Config:
     enable_meta: bool
     enable_snap: bool
     error_rate_threshold: float
+    catchup_days: int
     target_date_override: str
 
     @classmethod
@@ -74,5 +82,6 @@ class Config:
             enable_meta=_bool("ENABLE_META", True),
             enable_snap=_bool("ENABLE_SNAP", True),
             error_rate_threshold=_float("ERROR_RATE_THRESHOLD", 0.05),
+            catchup_days=_int("CATCHUP_DAYS", 7),
             target_date_override=_optional("TARGET_DATE", ""),
         )

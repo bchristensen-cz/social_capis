@@ -53,6 +53,9 @@ Optional:
 - `TARGET_DATE=2026-04-22` — backfill a specific date (idempotent, safe to re-run).
 - `ENABLE_TIKTOK=false` / `ENABLE_META=false` / `ENABLE_SNAP=false` — disable a single platform.
 - `ERROR_RATE_THRESHOLD=0.05` — non-zero exit threshold (default 5%).
+- `CATCHUP_DAYS=7` — without `TARGET_DATE`, each run sweeps this many trailing days and sends any
+  date that has eligible rows in BigQuery but no committed `data/<date>.jsonl` yet (upstream
+  `mapped_email` mapping can land 2+ days late). Already-sent dates are skipped.
 
 ## Data source
 

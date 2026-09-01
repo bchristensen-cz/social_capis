@@ -186,15 +186,46 @@ def run(cfg: Config, target: date) -> int:
     return 0
 
 
+def resolve_dates(cfg: Config) -> list[date]:
+    """Dates to process this run.
+
+    An explicit TARGET_DATE override is a forced single-date backfill.
+    Otherwise sweep the trailing CATCHUP_DAYS window (ending yesterday,
+    America/Denver) so business dates whose upstream mapping lands late are
+    picked up by a later run instead of being silently skipped forever.
+    """
+    if cfg.target_date_override:
+        return [bigquery_source.resolve_target_date(cfg.target_date_override)]
+    return bigquery_source.catchup_dates(cfg.catchup_days)
+
+
+def already_sent(cfg: Config, target: date) -> bool:
+    """A committed data file is the ledger of what has been sent."""
+    return github_commit.file_exists(
+        cfg.github_repo,
+        f"data/{target.isoformat()}.jsonl",
+        cfg.github_pat,
+        branch=cfg.github_branch,
+    )
+
+
 def main() -> int:
     configure_logging()
     cfg = Config.load()
-    target = bigquery_source.resolve_target_date(cfg.target_date_override)
-    try:
-        return run(cfg, target)
-    except Exception:
-        log.exception("run_failed")
-        return 1
+    targets = resolve_dates(cfg)
+    sweep = not cfg.target_date_override
+    worst = 0
+    for target in targets:
+        try:
+            if sweep and already_sent(cfg, target):
+                log.info("already_sent_skip", extra={"target_date": target.isoformat()})
+                continue
+            code = run(cfg, target)
+        except Exception:
+            log.exception("run_failed", extra={"target_date": target.isoformat()})
+            code = 1
+        worst = max(worst, code)
+    return worst
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ import json
 
 import responses
 
-from src.github_commit import API, commit_file
+from src.github_commit import API, commit_file, file_exists
 
 
 def _url(repo: str, path: str) -> str:
@@ -69,3 +69,17 @@ def test_commit_auth_error_does_not_retry():
         commit_file(repo, path, b"x", "msg", token="BAD")
 
     assert len(responses.calls) == 1
+
+
+@responses.activate
+def test_file_exists_true_when_present():
+    repo, path = "owner/repo", "data/2026-08-21.jsonl"
+    responses.add(responses.GET, _url(repo, path), json={"sha": "deadbeef"}, status=200)
+    assert file_exists(repo, path, token="T") is True
+
+
+@responses.activate
+def test_file_exists_false_on_404():
+    repo, path = "owner/repo", "data/2026-08-21.jsonl"
+    responses.add(responses.GET, _url(repo, path), status=404)
+    assert file_exists(repo, path, token="T") is False
