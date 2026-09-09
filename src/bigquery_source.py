@@ -19,6 +19,9 @@ EVENT_NAME = "Purchase"
 # (digital orders already post CAPI events directly from checkout), no catering,
 # excluding the test store. `business_date` is the POS-day partition column. `order_timestamp_utc`
 # is the UTC event time (`order_datetime_local` is America/Denver).
+# `order_customer` is read from the `claude` dataset view, which joins `sales_ops.order_customer`
+# to `sales_ops.order_sequence` to expose `mapped_cust_id` / `mapped_email` (those columns left the
+# base table in Sept 2026). `cust_info` still lives in `sales_ops`.
 _SQL = """
 WITH capi_data AS (
   SELECT
@@ -28,7 +31,7 @@ WITH capi_data AS (
     oc.mapped_email AS email,
     oc.order_timestamp_utc AS event_time,
     CONCAT('1', CAST(i.Phone AS STRING)) AS phone_raw
-  FROM `{project}.{dataset}.order_customer` oc
+  FROM `{project}.{order_dataset}.order_customer` oc
   LEFT JOIN `{project}.{dataset}.cust_info` i
     ON i.mapped_cust_id = oc.mapped_cust_id
   WHERE oc.business_date = @target_date
@@ -77,10 +80,11 @@ def fetch(
     project: str,
     dataset: str,
     target: date,
+    order_dataset: str = "claude",
     client: bigquery.Client | None = None,
 ) -> list[Conversion]:
     bq = client or bigquery.Client(project=project)
-    sql = _SQL.format(project=project, dataset=dataset)
+    sql = _SQL.format(project=project, dataset=dataset, order_dataset=order_dataset)
     job_config = bigquery.QueryJobConfig(
         query_parameters=[bigquery.ScalarQueryParameter("target_date", "DATE", target)],
         labels={"job": "social-capis-daily"},

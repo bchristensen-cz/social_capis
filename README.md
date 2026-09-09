@@ -35,7 +35,8 @@ python -m venv .venv
 gcloud auth application-default login
 
 export GCP_PROJECT=marketing-data-442316
-export BQ_DATASET=sales_ops           # default
+export BQ_DATASET=sales_ops           # default; holds cust_info
+export BQ_ORDER_DATASET=claude        # default; holds the order_customer view
 export GITHUB_REPO=bchristensen-cz/social_capis
 export GITHUB_PAT=...
 export TIKTOK_ACCESS_TOKEN=...
@@ -59,10 +60,10 @@ Optional:
 
 ## Data source
 
-The job reads from two tables in `sales_ops`, joined and filtered inside [src/bigquery_source.py](src/bigquery_source.py):
+The job reads from two tables, joined and filtered inside [src/bigquery_source.py](src/bigquery_source.py):
 
-- `order_customer` — POS transactions with `brink_order_id`, `net_sales`, `mapped_email`, `order_timestamp_utc`, `business_date`, `pulse_order_id`, `is_catering`, `store_id`
-- `cust_info` — customer table with `mapped_cust_id` → `Phone`
+- `claude.order_customer` (view over `sales_ops.order_customer` + `order_sequence`) — POS transactions with `brink_order_id`, `net_sales`, `mapped_email`, `order_timestamp_utc`, `business_date`, `pulse_order_id`, `is_catering`, `store_id`
+- `sales_ops.cust_info` — customer table with `mapped_cust_id` → `Phone`
 
 Row-level filters (applied in SQL):
 - `business_date = yesterday` (America/Denver)

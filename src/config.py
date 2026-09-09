@@ -44,6 +44,7 @@ def _int(name: str, default: int) -> int:
 class Config:
     gcp_project: str
     bq_dataset: str
+    bq_order_dataset: str
     github_repo: str
     github_branch: str
     github_pat: str
@@ -67,6 +68,7 @@ class Config:
         return cls(
             gcp_project=_required("GCP_PROJECT"),
             bq_dataset=_optional("BQ_DATASET", "sales_ops"),
+            bq_order_dataset=_optional("BQ_ORDER_DATASET", "claude"),
             github_repo=_optional("GITHUB_REPO", "bchristensen-cz/social_capis"),
             github_branch=_optional("GITHUB_BRANCH", "main"),
             github_pat=_required("GITHUB_PAT"),

@@ -68,6 +68,7 @@ def _cfg(**overrides) -> Config:
     base = dict(
         gcp_project="p",
         bq_dataset="d",
+        bq_order_dataset="o",
         github_repo="o/r",
         github_branch="main",
         github_pat="T",
