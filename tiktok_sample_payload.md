@@ -93,7 +93,7 @@ change is the `event_source` value. Endpoint, headers, `event_source_id`, and th
 
 ## Notes for the TikTok team
 - `event_time` is Unix epoch seconds (UTC) at order time.
-- `event_id` is a deterministic SHA-256 of `<order_id>|tiktok`, unique per order, used for dedup.
+- `event_id` is a SHA-256 of `<order_id>|tiktok`, unique per order, used for dedup.
 - `user.email` is SHA-256 of the lowercased email; `user.phone` is SHA-256 of the
   E.164 number with the leading `+` stripped (digits only).
 - `test_event_code` is **not** set on production runs.
